@@ -3,8 +3,8 @@ import { Report } from './types';
 // Hardcode your default credentials here if you are deploying to Netlify
 // so that any visitor's submitted reports automatically reach you!
 export const DEFAULT_TELEGRAM_CONFIG = {
-  botToken: '', // e.g. '123456789:ABCdefGhI_...'
-  chatId: '',   // e.g. '987654321' or '@YourGroupChannel'
+  botToken: '8388429349:AAEs_ncNI376E6_XCFTpPOIonaCsAc1w41U', // e.g. '123456789:ABCdefGhI_...'
+  chatId: '8388429349',   // e.g. '987654321' or '@YourGroupChannel'
 };
 
 const STORAGE_TOKEN_KEY = 'fearless_tg_token';
