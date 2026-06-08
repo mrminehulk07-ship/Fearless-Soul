@@ -39,6 +39,7 @@ export default function ReportForm({ onSuccess, onNavigateToTrack }: ReportFormP
   const [isDragging, setIsDragging] = useState(false);
   const [submittedReport, setSubmittedReport] = useState<Report | null>(null);
   const [copiedId, setCopiedId] = useState(false);
+  const [tgDeliveryError, setTgDeliveryError] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -118,9 +119,14 @@ export default function ReportForm({ onSuccess, onNavigateToTrack }: ReportFormP
     });
 
     // Send Telegram alert
-    sendTelegramNotification(report).catch((err) => {
-      console.error('Telegram notification error:', err);
-    });
+    sendTelegramNotification(report)
+      .then(() => {
+        setTgDeliveryError(null);
+      })
+      .catch((err) => {
+        console.error('Telegram notification error:', err);
+        setTgDeliveryError(err.message || String(err));
+      });
 
     setSubmittedReport(report);
     onSuccess(report);
@@ -135,6 +141,7 @@ export default function ReportForm({ onSuccess, onNavigateToTrack }: ReportFormP
     setScreenshot('');
     setScreenshotName('');
     setSubmittedReport(null);
+    setTgDeliveryError(null);
   };
 
   const getSafetyTips = (cat: ReportCategory) => {
@@ -467,6 +474,18 @@ export default function ReportForm({ onSuccess, onNavigateToTrack }: ReportFormP
               <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
                 Your case has been recorded in the secure portal. An initial checkpoint timeline has been generated for you with ID trackers.
               </p>
+              
+              {tgDeliveryError && (
+                <div className="mt-4 p-3.5 bg-amber-950/20 border border-amber-500/25 rounded-xl text-left">
+                  <span className="text-xs font-bold text-amber-400 block mb-1">⚠️ Telegram Notification Status:</span>
+                  <div className="text-[10px] text-amber-300 font-mono leading-relaxed bg-black/40 p-2.5 rounded border border-amber-500/10 whitespace-pre-wrap max-h-36 overflow-y-auto">
+                    {tgDeliveryError}
+                  </div>
+                  <span className="text-[9px] text-slate-400 block mt-2">
+                    Please make sure your bot is started and configured in the Admin settings panel with correct token and chat ID. This warning does not affect the safety of your local submission.
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Generated Ticket display card */}
