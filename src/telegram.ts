@@ -55,8 +55,17 @@ export const clearTelegramConfig = (): void => {
   }
 };
 
+const escapeHtml = (text: string): string => {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+};
+
 /**
- * Sends a high-contrast formatted Markdown report to your Telegram Bot
+ * Sends a high-contrast formatted HTML report to your Telegram Bot
+ * Using HTML avoids parsing failures due to special Markdown characters in user-submitted descriptions (e.g. _, *, characters inside urls).
  */
 export const sendTelegramNotification = async (report: Report): Promise<boolean> => {
   const config = getTelegramConfig();
@@ -67,23 +76,31 @@ export const sendTelegramNotification = async (report: Report): Promise<boolean>
 
   const dateStr = new Date(report.createdAt).toLocaleString();
   
-  // Format report data beautifully in Markdown
-  const text = `🚨 *NEW INCIDENT REPORT PORTAL RECEIVED* 🚨
+  const escapedId = escapeHtml(report.id);
+  const escapedCategory = escapeHtml(report.category);
+  const escapedStatus = escapeHtml(report.status);
+  const escapedType = report.isAnonymous ? '👤 Anonymous Submission' : '🔒 Protected User';
+  const escapedReporterName = report.reporterName ? escapeHtml(report.reporterName) : 'Anonymous';
+  const escapedReporterContact = report.reporterContact ? escapeHtml(report.reporterContact) : 'Not provided';
+  const escapedDescription = escapeHtml(report.description);
+  const escapedDate = escapeHtml(dateStr);
+  const escapedOrigin = escapeHtml(window.location.origin);
 
-*ID Tracker:* \`${report.id}\`
-*Category:* *${report.category}*
-*Status:* ${report.status}
-*Type:* ${report.isAnonymous ? '👤 Anonymous Submission' : '🔒 Protected User'}
+  // Format report data beautifully in HTML
+  const text = `🚨 <b>NEW INCIDENT REPORT PORTAL RECEIVED</b> 🚨
 
-${!report.isAnonymous ? `*Reporter Name:* ${report.reporterName || 'Anonymous'}\n*Contact Endpoint:* ${report.reporterContact || 'Not provided'}` : ''}
+<b>ID Tracker:</b> <code>${escapedId}</code>
+<b>Category:</b> <b>${escapedCategory}</b>
+<b>Status:</b> ${escapedStatus}
+<b>Type:</b> ${escapedType}
 
-*Incident Details Description:*
-\`\`\`text
-${report.description}
-\`\`\`
+${!report.isAnonymous ? `<b>Reporter Name:</b> ${escapedReporterName}\n<b>Contact Endpoint:</b> ${escapedReporterContact}` : ''}
 
-📅 *Timestamp:* ${dateStr}
-🔗 *Portal Link:* [Track Case](${window.location.origin})
+<b>Incident Details Description:</b>
+<pre>${escapedDescription}</pre>
+
+📅 <b>Timestamp:</b> ${escapedDate}
+🔗 <b>Portal Link:</b> <a href="${escapedOrigin}">Track Case</a>
 `;
 
   try {
@@ -95,7 +112,7 @@ ${report.description}
       body: JSON.stringify({
         chat_id: config.chatId,
         text: text,
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         disable_web_page_preview: true,
       }),
     });
@@ -118,8 +135,8 @@ ${report.description}
         const formData = new FormData();
         formData.append('chat_id', config.chatId);
         formData.append('photo', blob, report.screenshotName || 'screenshot.png');
-        formData.append('caption', `📷 Supporting Screenshot Evidence for Report ID: \`${report.id}\``);
-        formData.append('parse_mode', 'Markdown');
+        formData.append('caption', `📷 Supporting Screenshot Evidence for Report ID: <code>${escapedId}</code>`);
+        formData.append('parse_mode', 'HTML');
 
         const photoRes = await fetch(photoUrl, {
           method: 'POST',
