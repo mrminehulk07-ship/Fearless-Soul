@@ -2,6 +2,7 @@ import React, { useState, useRef, DragEvent, ChangeEvent } from 'react';
 import { REPORT_CATEGORIES } from '../data';
 import { ReportCategory, Report } from '../types';
 import { createReport } from '../utils';
+import { sendTelegramNotification } from '../telegram';
 import { 
   Shield, 
   User, 
@@ -114,6 +115,11 @@ export default function ReportForm({ onSuccess, onNavigateToTrack }: ReportFormP
       description: description.trim(),
       screenshot: screenshot || undefined,
       screenshotName: screenshotName || undefined
+    });
+
+    // Send Telegram alert
+    sendTelegramNotification(report).catch((err) => {
+      console.error('Telegram notification error:', err);
     });
 
     setSubmittedReport(report);

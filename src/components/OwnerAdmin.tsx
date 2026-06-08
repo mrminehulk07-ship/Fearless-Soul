@@ -6,6 +6,7 @@ import {
   Key, 
   ShieldAlert, 
   Eye, 
+  EyeOff,
   Trash2, 
   ExternalLink, 
   CheckCircle, 
@@ -17,9 +18,11 @@ import {
   Plus,
   PlusCircle,
   Clock,
-  Loader
+  Loader,
+  Send
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { getTelegramConfig, saveTelegramConfig, sendTelegramTestPing } from '../telegram';
 
 interface OwnerAdminProps {
   onReportUpdated?: () => void;
@@ -38,9 +41,28 @@ export default function OwnerAdmin({ onReportUpdated }: OwnerAdminProps) {
   const [privateNoteVal, setPrivateNoteVal] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Telegram configuration state
+  const [tgToken, setTgToken] = useState('');
+  const [tgChatId, setTgChatId] = useState('');
+  const [showTgToken, setShowTgToken] = useState(false);
+  const [tgTestLoading, setTgTestLoading] = useState(false);
+  const [tgTestResult, setTgTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [showTgSettings, setShowTgSettings] = useState(false);
+
+  // Passkey customization state
+  const [adminPass, setAdminPass] = useState(() => {
+    return localStorage.getItem('fearless_admin_passkey') || 'Mineop79';
+  });
+  const [newPass, setNewPass] = useState('');
+  const [passSuccessMsg, setPassSuccessMsg] = useState('');
+  const [showPassSettings, setShowPassSettings] = useState(false);
+
   useEffect(() => {
     if (isAuthenticated) {
       loadReportsData();
+      const config = getTelegramConfig();
+      setTgToken(config.botToken);
+      setTgChatId(config.chatId);
     }
   }, [isAuthenticated]);
 
@@ -53,15 +75,49 @@ export default function OwnerAdmin({ onReportUpdated }: OwnerAdminProps) {
     }
   };
 
+  const handleSaveTg = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveTelegramConfig(tgToken, tgChatId);
+    setSuccessMsg('Telegram settings updated successfully!');
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
+  const handleTestTg = async () => {
+    setTgTestLoading(true);
+    setTgTestResult(null);
+    const res = await sendTelegramTestPing(tgToken, tgChatId);
+    setTgTestResult(res);
+    setTgTestLoading(false);
+    setTimeout(() => setTgTestResult(null), 6000);
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPass = passkey.trim().toLowerCase().replace('@', '');
-    if (cleanPass === 'takepermit' || cleanPass === 'admin') {
+    const currentSavedPass = (localStorage.getItem('fearless_admin_passkey') || 'Mineop79').trim().toLowerCase();
+    if (cleanPass === 'mineop79' || cleanPass === currentSavedPass) {
+      if (cleanPass === 'mineop79' && currentSavedPass !== 'mineop79') {
+        localStorage.setItem('fearless_admin_passkey', 'Mineop79');
+        setAdminPass('Mineop79');
+      }
       setIsAuthenticated(true);
       setErrorMessage('');
     } else {
-      setErrorMessage('Access Denied. Hint: Use username "TakePermit" to simulate.');
+      setErrorMessage(`Access Denied. Current entry does not match the configured admin passkey.`);
     }
+  };
+
+  const handlePassChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanNewPass = newPass.trim();
+    if (!cleanNewPass) return;
+    localStorage.setItem('fearless_admin_passkey', cleanNewPass);
+    setAdminPass(cleanNewPass);
+    setNewPass('');
+    setPassSuccessMsg('Passkey updated successfully! Use your new passkey to log in next time.');
+    setTimeout(() => {
+      setPassSuccessMsg('');
+    }, 4000);
   };
 
   const handleUpdateStatus = (e: React.FormEvent) => {
@@ -155,7 +211,7 @@ export default function OwnerAdmin({ onReportUpdated }: OwnerAdminProps) {
 
           <div className="p-3 bg-slate-950 border border-slate-850/80 rounded-xl text-[10px] text-slate-500 text-left space-y-1">
             <span className="font-semibold text-slate-400 block mb-0.5">💡 Interactive Sandbox Guide:</span>
-            <span>Since this app is executing locally on your browser container, use the Telegram username <span className="font-mono text-sky-400">TakePermit</span> or code name <span className="font-mono text-indigo-400">admin</span> to log in and simulate your dashboard as Fearless Soul.</span>
+            <span>Use your configured custom passkey (default is <span className="font-mono text-sky-400">Mineop79</span>) to log in and manage reports securely.</span>
           </div>
         </motion.div>
       ) : (
@@ -195,6 +251,199 @@ export default function OwnerAdmin({ onReportUpdated }: OwnerAdminProps) {
                 <span className="text-[10px] text-rose-500 font-semibold">critical</span>
               </div>
             </div>
+          </div>
+
+          {/* Collapsible Telegram Configuration Panel */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 backdrop-blur-md animate-fade-in">
+            <button
+              type="button"
+              onClick={() => setShowTgSettings(!showTgSettings)}
+              className="w-full flex items-center justify-between text-left cursor-pointer focus:outline-none"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-sky-500/10 border border-sky-400/20 text-sky-450 rounded-xl">
+                  <Send className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                    Telegram Bot Integration
+                    <span className="text-[10px] bg-sky-550/15 text-sky-400 px-2 py-0.5 rounded-full border border-sky-500/20 font-mono font-normal">
+                      100% Free Report Receiver
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    Receive incoming security and harassment claims instantly on your private Telegram account.
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-sky-450 hover:text-sky-350 bg-sky-950/20 hover:bg-sky-950/40 px-3 py-1.5 rounded-lg border border-sky-500/20 transition-all">
+                {showTgSettings ? 'Hide Setup' : 'Manage Connections'}
+              </span>
+            </button>
+
+            {showTgSettings && (
+              <div className="mt-5 pt-5 border-t border-slate-800/80 space-y-4">
+                <div className="p-4 bg-slate-950 border border-slate-850 rounded-xl space-y-2 text-xs text-slate-400 leading-relaxed">
+                  <div className="font-semibold text-slate-200 flex items-center gap-1.5">
+                    <Activity className="w-4 h-4 text-emerald-400" /> How to connect your Telegram Bot (Free):
+                  </div>
+                  <ul className="list-decimal list-inside space-y-1 pl-1">
+                    <li>Open Telegram and search for <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-sky-455 font-semibold hover:underline">@BotFather</a>. Start a chat and send <code className="text-indigo-400 font-semibold font-mono">/newbot</code> to define a brand-new bot.</li>
+                    <li>Copy your API Token sequence outputted by BotFather (e.g. <code className="text-slate-300">12345678:ABC-DEF...</code>).</li>
+                    <li>Search for <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-sky-455 font-semibold hover:underline">@userinfobot</a> and message it to extract your personal numeric *User Id* (used as Chat ID).</li>
+                    <li>Open your newly declared bot on Telegram and send a <code className="text-indigo-300 font-mono">/start</code> message. Then insert qualifications below!</li>
+                  </ul>
+                </div>
+
+                <form onSubmit={handleSaveTg} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-slate-300">Telegram Bot Token</label>
+                    <div className="relative">
+                      <input
+                        type={showTgToken ? 'text' : 'password'}
+                        placeholder="Paste Bot Token (e.g., 123456789:ABCdef...)"
+                        value={tgToken}
+                        onChange={(e) => setTgToken(e.target.value)}
+                        className="w-full text-xs bg-slate-950 border border-slate-850 focus:border-sky-500 focus:outline-none pl-3 pr-10 py-3 rounded-xl text-slate-100 placeholder-slate-655"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowTgToken(!showTgToken)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 pointer-events-auto"
+                        title={showTgToken ? 'Hide token' : 'Show token'}
+                      >
+                        {showTgToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-slate-300">Telegram Chat ID (Numeric)</label>
+                    <input
+                      type="text"
+                      placeholder="Enter Chat ID (e.g., 987654321)"
+                      value={tgChatId}
+                      onChange={(e) => setTgChatId(e.target.value)}
+                      className="w-full text-xs bg-slate-950 border border-slate-850 focus:border-sky-500 focus:outline-none p-3 rounded-xl text-slate-100 placeholder-slate-655"
+                    />
+                  </div>
+
+                  {tgTestResult && (
+                    <div className={`md:col-span-2 p-3.5 rounded-xl text-xs border ${
+                      tgTestResult.success 
+                        ? 'bg-emerald-950/20 border-emerald-900/60 text-emerald-400' 
+                        : 'bg-rose-950/20 border-rose-900/60 text-rose-450'
+                    }`}>
+                      {tgTestResult.message}
+                    </div>
+                  )}
+
+                  <div className="md:col-span-2 pt-3 border-t border-slate-850/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-[10px] text-slate-500 leading-relaxed max-w-lg">
+                      💡 To hardcode this directly so it works instantly on Netlify for all users, update the <code className="text-indigo-400">DEFAULT_TELEGRAM_CONFIG</code> values in the <code className="text-slate-400">src/telegram.ts</code> file direct inside your workspace code editor!
+                    </p>
+                    <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                      <button
+                        type="button"
+                        disabled={tgTestLoading || !tgToken || !tgChatId}
+                        onClick={handleTestTg}
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-950 hover:bg-slate-900 text-slate-300 border border-slate-800 rounded-xl text-xs font-semibold disabled:opacity-40 cursor-pointer"
+                      >
+                        {tgTestLoading ? (
+                          <>
+                            <Loader className="w-3.5 h-3.5 animate-spin text-sky-400" />
+                            <span>Testing Bot...</span>
+                          </>
+                        ) : (
+                          <span>Test connection</span>
+                        )}
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-650 hover:from-sky-550 hover:to-indigo-600 text-white font-semibold rounded-xl text-xs cursor-pointer shadow-md shadow-sky-500/5 hover:shadow-sky-500/10"
+                      >
+                        Save Bot Settings
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+
+          {/* Collapsible Admin Passkey Panel */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 backdrop-blur-md animate-fade-in mt-4">
+            <button
+              type="button"
+              onClick={() => setShowPassSettings(!showPassSettings)}
+              className="w-full flex items-center justify-between text-left cursor-pointer focus:outline-none"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-500/10 border border-indigo-400/20 text-indigo-400 rounded-xl">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                    Admin Passkey Customization
+                    <span className="text-[10px] bg-indigo-550/15 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/20 font-mono font-normal">
+                      Security Setting
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    Update the security password used to login to this admin management dashboard.
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-indigo-400 hover:text-indigo-350 bg-indigo-950/20 hover:bg-indigo-950/40 px-3 py-1.5 rounded-lg border border-indigo-500/20 transition-all">
+                {showPassSettings ? 'Hide Passkey Settings' : 'Change Passkey'}
+              </span>
+            </button>
+
+            {showPassSettings && (
+              <div className="mt-5 pt-5 border-t border-slate-800/80 space-y-4">
+                <form onSubmit={handlePassChange} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-slate-300">Current Login Passkey</label>
+                      <input
+                        type="text"
+                        disabled
+                        value={adminPass}
+                        className="w-full text-xs bg-slate-950/50 border border-slate-900 focus:outline-none p-3 rounded-xl text-slate-400 font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-slate-300">Set New Passkey</label>
+                      <input
+                        type="text"
+                        placeholder="Type your new secure passkey..."
+                        value={newPass}
+                        onChange={(e) => setNewPass(e.target.value)}
+                        className="w-full text-xs bg-slate-950 border border-slate-850 focus:border-indigo-500 focus:outline-none p-3 rounded-xl text-slate-100"
+                      />
+                    </div>
+                  </div>
+
+                  {passSuccessMsg && (
+                    <div className="p-3 bg-emerald-950/20 border border-emerald-950/60 text-emerald-400 rounded-xl text-xs">
+                      {passSuccessMsg}
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={!newPass.trim()}
+                      className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-550 hover:to-sky-500 text-white font-semibold rounded-xl text-xs cursor-pointer shadow-md shadow-indigo-500/5 disabled:opacity-40"
+                    >
+                      Update Passkey
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
