@@ -1,0 +1,6 @@
+{
+  "name": "Contact & Report Portal",
+  "description": "A professional online safety portal to report blackmail, threats, harassment, scams, and cyberbullying. Provides direct contact options and features anonymous secure report submission.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

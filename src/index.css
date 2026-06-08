@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Space Grotesk", sans-serif;
+}
+
+/* Custom scrollbar config for sleek Telegram dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a; /* matches deep slate */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155; 
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Background gradient animation */
+@keyframes ambientGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-ambient-glow {
+  background-size: 200% 200%;
+  animation: ambientGlow 15s ease infinite;
+}
+
+/* Telegram glow highlights */
+.telegram-glow {
+  box-shadow: 0 0 20px rgba(36, 129, 204, 0.15);
+}
+
+.telegram-glow-strong {
+  box-shadow: 0 0 30px rgba(36, 129, 204, 0.3);
+}
+
+/* Clean border line */
+.border-telegram {
+  border-color: rgba(36, 129, 204, 0.2);
+}
